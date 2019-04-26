@@ -45,6 +45,10 @@ class Robot:
                                                                 vrep.simx_opmode_oneshot_wait)
         self.check_on_error(error_code, "Couldn't find front laser!", True)
 
+        e, self.lidar_handle1 = vrep.simxGetObjectHandle(self.client_id, 'fastHokuyo',
+                                                         vrep.simx_opmode_oneshot_wait)
+        self.check_on_error(e, "Can not find lidar 1", True)
+
         sec, msec = vrep.simxGetPingTime(self.client_id)
         print("Ping time: %f" % (sec + msec / 1000.0))
         print('Initialization is finished.')
@@ -115,6 +119,8 @@ class Robot:
         while vrep.simxGetConnectionId(self.client_id) != -1:
             front_detection, left_detection, right_detection, distance_front, distance_left, distance_right = self.get_proximity_data()
             front = 0 if not front_detection else distance_front
+            e_lidar, points = self.get_lidar_data()
+            print(points)
             if left_detection and right_detection:
                 if not prev_left_detection:
                     self.set_motor_speed(self.initial_speed, self.initial_speed)
@@ -153,6 +159,13 @@ class Robot:
         self.check_on_error(e, "Front sensor data reading error")
 
         return front_detection, left_detection, right_detection, np.linalg.norm(front), np.linalg.norm(left), np.linalg.norm(right)
+
+    def get_lidar_data(self):
+        e, data = vrep.simxGetStringSignal(self.client_id, "lidarMeasuredData", vrep.simx_opmode_buffer)
+        self.check_on_error(e, "simxGetStringSignal lidar error")
+        measured_data = vrep.simxUnpackFloats(data)
+        point_data = np.reshape(measured_data, (int(len(measured_data) / 3), 3))
+        return e, point_data
 
 
 if __name__ == '__main__':
