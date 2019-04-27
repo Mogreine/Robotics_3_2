@@ -45,7 +45,7 @@ class Robot:
                                                                 vrep.simx_opmode_oneshot_wait)
         self.check_on_error(error_code, "Couldn't find front laser!", True)
 
-        e, self.lidar_handle1 = vrep.simxGetObjectHandle(self.client_id, 'fastHokuyo',
+        e, self.lidar_handler = vrep.simxGetObjectHandle(self.client_id, 'Lidar',
                                                          vrep.simx_opmode_oneshot_wait)
         self.check_on_error(e, "Can not find lidar 1", True)
 
@@ -97,7 +97,6 @@ class Robot:
         self.set_motor_speed(self.left_speed - res, self.right_speed + res)
         self.prev_e = self.e
 
-
     def calc_dist(self, left_dist, right_dist):
         hyp = math.sqrt(left_dist ** 2 + right_dist ** 2)
         dist = left_dist * right_dist / hyp
@@ -113,6 +112,7 @@ class Robot:
         (errorCode, detectionState, detectedPoint, detectedObjectHandle,
          detectedSurfaceNormalVector) = vrep.simxReadProximitySensor(self.client_id, self.laser_right,
                                                                      vrep.simx_opmode_streaming)
+        e, data = vrep.simxGetStringSignal(self.client_id, "lidarMeasuredData", vrep.simx_opmode_streaming)
 
         prev_dist = 0
         prev_left_detection = True
