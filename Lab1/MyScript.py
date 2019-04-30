@@ -45,9 +45,9 @@ class Robot:
                                                                 vrep.simx_opmode_oneshot_wait)
         self.check_on_error(error_code, "Couldn't find front laser!", True)
 
-        e, self.lidar_handler = vrep.simxGetObjectHandle(self.client_id, 'Lidar',
-                                                         vrep.simx_opmode_oneshot_wait)
-        self.check_on_error(e, "Can not find lidar 1", True)
+        # e, self.lidar_handler = vrep.simxGetObjectHandle(self.client_id, 'Lidar',
+                                     #                    vrep.simx_opmode_oneshot_wait)
+        # self.check_on_error(e, "Can not find lidar 1", True)
 
         sec, msec = vrep.simxGetPingTime(self.client_id)
         print("Ping time: %f" % (sec + msec / 1000.0))
@@ -119,8 +119,8 @@ class Robot:
         while vrep.simxGetConnectionId(self.client_id) != -1:
             front_detection, left_detection, right_detection, distance_front, distance_left, distance_right = self.get_proximity_data()
             front = 0 if not front_detection else distance_front
-            e_lidar, points = self.get_lidar_data()
-            print(points)
+            # e_lidar, points = self.get_lidar_data()
+            # print(points)
             if left_detection and right_detection:
                 if not prev_left_detection:
                     self.set_motor_speed(self.initial_speed, self.initial_speed)
