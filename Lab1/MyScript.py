@@ -1,3 +1,5 @@
+from matplotlib.ticker import NullFormatter
+
 import vrep
 import sys
 import time
@@ -90,6 +92,7 @@ class Robot:
         res = up + ud + ui
         self.set_motor_speed(self.left_speed - res, self.right_speed + res)
         self.prev_e = self.e
+        return self.left_speed - res, self.right_speed + res
 
     def calc_dist(self, left_dist, right_dist):
         hyp = math.sqrt(left_dist ** 2 + right_dist ** 2)
@@ -114,6 +117,11 @@ class Robot:
 
         prev_dist = 0
         prev_left_detection = True
+        err_arr_tmp = np.zeros(100)
+        left_arr_tmp, right_arr_tmp = np.zeros(100), np.zeros(100)
+        err_arr = []
+        left_arr, right_arr = [], []
+        counter = 0
         while vrep.simxGetConnectionId(self.client_id) != -1:
             front_detection, left_detection, middle_detection, right_detection, distance_front, distance_left, distance_middle, distance_right = self.get_proximity_data()
             if left_detection and right_detection:
@@ -131,13 +139,24 @@ class Robot:
             if front_detection:
                 dist = min(distance_front, dist)
             print("Distance: {}".format(dist))
-            self.fix_distance(dist, prev_dist)
+
+            err_arr_tmp[counter] = self.maintained_dist_right - dist
+            left_arr_tmp[counter], right_arr_tmp[counter] = self.fix_distance(dist, prev_dist)
+
+            counter += 1
+            if counter == 100:
+                counter = 0
+                err_arr.append(err_arr_tmp.mean())
+                left_arr.append(left_arr_tmp.mean())
+                right_arr.append(right_arr_tmp.mean())
+                left_arr_tmp, right_arr_tmp, err_arr_tmp = np.zeros(100), np.zeros(100), np.zeros(100)
+
             prev_dist = dist
 
             time.sleep(0.01)
-            prev_left_detection = left_detection
 
         vrep.simxFinish(self.client_id)
+        return err_arr, left_arr, right_arr
 
     def get_proximity_data(self):
         (e, left_detection, left, detectedObjectHandle,
@@ -165,4 +184,24 @@ class Robot:
 
 if __name__ == '__main__':
     robot = Robot()
-    robot.start_simulation()
+    err_arr, left, right = robot.start_simulation()
+    x = [i + 1 for i in range(len(err_arr))]
+
+    plt.figure(1)
+    plt.subplot(211)
+    plt.plot(x, err_arr)
+    plt.title('Error change')
+    plt.ylabel('Error')
+    plt.xlabel('Time, sec')
+    plt.grid(True)
+
+    plt.subplot(212)
+    plt.plot(x, left, x, right)
+    plt.title('Velocity change (blue - left, orange - right)')
+    plt.ylabel('Velocity')
+    plt.xlabel('Time, sec')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
+    print('Done')
