@@ -13,7 +13,7 @@ class Robot:
     e = 0
     prev_e = 0
     iSum = 0
-    initial_speed = 0.2
+    initial_speed = 0.5
     maintained_dist_right = 0.6
 
     def __init__(self):
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     plt.ylabel('Velocity')
     plt.xlabel('Time, sec')
     plt.grid(True)
-    
+
     plt.tight_layout()
     plt.show()
     print('Done')
