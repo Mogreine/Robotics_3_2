@@ -1,10 +1,11 @@
 import cv2
 import math
 import numpy as np
+from lib.roboviz import MapVisualizer
 
 
 class Map(object):
-    def __init__(self, width, height):
+    def __init__(self, width, height, meters):
         self.width = width
         self.height = height
         self.start_pos_x = width // 2
@@ -13,9 +14,12 @@ class Map(object):
         self.line_color = (255, 255, 255)
         self.robot_color = (0, 255, 0)
         self.ignore_dist = 300
-        # self.scale_effect =
+        self.viz = MapVisualizer(width, meters, 'SLAM')
+        self.scale_effect = 20
 
     def update(self, pos, angle, lidar_data):
+        pos = [p * self.scale_effect for p in pos]
+        lidar_data = [dt * self.scale_effect for dt in lidar_data]
         pos[0] += self.start_pos_x
         pos[1] += self.start_pos_y
         pos = (int(pos[0]), int(pos[1]))
@@ -30,19 +34,29 @@ class Map(object):
 
     def show_map(self):
         cv2.imshow('SLAM', self.image)
-        cv2.waitKey(1)
+        k = cv2.waitKey(1) & 0xFF
+        # saving the map if 's' is pressed
+        if k == ord('s'):
+            cv2.imwrite('map.png', self.image)
 
     def draw_robot(self, pos):
-        cv2.circle(self.image, pos, 4, (2, 2, 2), cv2.FILLED)
+        cv2.circle(self.image, pos, 4, (0, 255, 0), cv2.FILLED)
 
     def draw_lidar_data(self, pos, ang, lidar_data):
-        print(ang)
-        angle = -30 + ang - 44
+        print("fir - {}, mid - {}, last - {}".format(lidar_data[0], lidar_data[684 // 2], lidar_data[684 - 3]))
+        angle = -30 - ang
         angle_step = 240.0 / len(lidar_data)
-        print(lidar_data[0])
+        prev_x, prev_y = 0, 0
         for dist in lidar_data:
             x = int(pos[0] + dist * math.cos(math.radians(angle)))
             y = int(pos[1] + dist * math.sin(math.radians(angle)))
-            angle += angle_step
-            # print(x, y)
             cv2.line(self.image, pos, (x, y), self.line_color, 1)
+            # if abs(abs(pos[1] - prev_y) - abs(pos[1] - y)) < 2:
+            #     cv2.line(self.image, (prev_x, prev_y), (x, y), (0, 0, 0), 1)
+            if dist < 95:
+                cv2.circle(self.image, (x, y), 5, (0, 0, 0), cv2.FILLED)
+            prev_x = x
+            prev_y = y
+            angle += angle_step
+
+

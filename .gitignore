@@ -1,3 +1,7 @@
-Lab1/.idea
+Lab1/.idea/*
 
 Lab1/.idea/workspace.xml
+
+
+Lab2_noSLAM/.idea/*
+Lab2_noSLAM/__pycache__/*

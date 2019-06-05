@@ -1,4 +1,4 @@
-MAP_SIZE_PIXELS = 700
+MAP_SIZE_PIXELS = 1000
 MAP_SIZE_METERS = 40
 
 import vrep
@@ -16,7 +16,7 @@ class Robot:
     e = 0
     prev_e = 0
     iSum = 0
-    initial_speed = 0.2
+    initial_speed = 0.6
     maintained_dist_right = 0.6
     prev_alpha = 0
     update_time = 0.01
@@ -115,7 +115,7 @@ class Robot:
 
     def fix_distance(self, dist, old_dist):
         # constants
-        kp = 0.4
+        kp = 2
         kd = 1
         ki = 0.1
         iMin, iMax = -0.2, 0.2
@@ -161,12 +161,13 @@ class Robot:
             alpha = 180 - math.degrees(math.atan(delta_x / -delta_y))
         else:
             alpha = self.prev_alpha
-        print("alpha: {}, ping: {}".format(alpha, ping))
+        print("alpha: {}, z-orien: {}".format(alpha, math.degrees(curr_orientation[2]) + 90))
+        alpha = math.degrees(curr_orientation[2]) + 90
         self.prev_position = curr_position
         self.prev_orientation = curr_orientation
         self.prev_alpha = alpha
-        curr_position[0] *= 10
-        curr_position[1] *= -10
+        curr_position[0] *= 1
+        curr_position[1] *= -1
         return curr_position, alpha
 
     def start_simulation(self):
@@ -189,7 +190,7 @@ class Robot:
         e, data2 = vrep.simxGetStringSignal(self.client_id, "distances", vrep.simx_opmode_streaming)
         self.check_on_error(e, "simxGetStringSignal lidar error")
 
-        map = Map(MAP_SIZE_PIXELS, MAP_SIZE_PIXELS)
+        map = Map(MAP_SIZE_PIXELS, MAP_SIZE_PIXELS, MAP_SIZE_METERS)
 
         prev_dist = 0
         err_arr_tmp = np.zeros(100)
@@ -229,7 +230,8 @@ class Robot:
             point_data_len = len(lidar_data)
             dist_data_len = len(dist_data)
             dist_data = dist_data[::-1]
-            slam_dist_data = [i * 10 for i in dist_data[0:-2]]
+            slam_dist_data = [i * 1 for i in dist_data[0:-2]]
+            print(len(slam_dist_data))
 
             # getting robot position data and updating the map
             pos, angle = self.calc_odometry()
