@@ -1,7 +1,6 @@
 import cv2
 import math
 import numpy as np
-from lib.roboviz import MapVisualizer
 
 
 class Map(object):
@@ -9,12 +8,11 @@ class Map(object):
         self.width = width
         self.height = height
         self.start_pos_x = width // 2
-        self.start_pos_y = height // 2
+        self.start_pos_y = height // 5
         self.image = np.zeros((height, width, 3), np.uint8)
         self.line_color = (255, 255, 255)
         self.robot_color = (0, 255, 0)
         self.ignore_dist = 300
-        self.viz = MapVisualizer(width, meters, 'SLAM')
         self.scale_effect = 20
 
     def update(self, pos, angle, lidar_data):
