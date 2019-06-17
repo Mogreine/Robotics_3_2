@@ -15,6 +15,7 @@ class Map(object):
         self.ignore_dist = 300
         self.scale_effect = 20
 
+    # Метод обновляет карту.
     def update(self, pos, angle, lidar_data):
         pos = [p * self.scale_effect for p in pos]
         lidar_data = [dt * self.scale_effect for dt in lidar_data]
@@ -30,6 +31,7 @@ class Map(object):
         # show map
         self.show_map()
 
+    # Показывает карту. При нажатии на кнопку "s" сохраняет карту в директорию скрипта.
     def show_map(self):
         cv2.imshow('SLAM', self.image)
         k = cv2.waitKey(1) & 0xFF
@@ -37,24 +39,22 @@ class Map(object):
         if k == ord('s'):
             cv2.imwrite('map.png', self.image)
 
+    # Отрисовывает самого робота на карте
     def draw_robot(self, pos):
         cv2.circle(self.image, pos, 4, (0, 255, 0), cv2.FILLED)
 
+    # Производит отрисовку данных в виде лучей, в случае если длина луча меньше максимальной (< 95) значит
+    # он врезается в стену и нужно ее сделать немного жирнее, чтобы точно детектилась
     def draw_lidar_data(self, pos, ang, lidar_data):
         print("fir - {}, mid - {}, last - {}".format(lidar_data[0], lidar_data[684 // 2], lidar_data[684 - 3]))
         angle = -30 - ang
         angle_step = 240.0 / len(lidar_data)
-        prev_x, prev_y = 0, 0
         for dist in lidar_data:
             x = int(pos[0] + dist * math.cos(math.radians(angle)))
             y = int(pos[1] + dist * math.sin(math.radians(angle)))
             cv2.line(self.image, pos, (x, y), self.line_color, 1)
-            # if abs(abs(pos[1] - prev_y) - abs(pos[1] - y)) < 2:
-            #     cv2.line(self.image, (prev_x, prev_y), (x, y), (0, 0, 0), 1)
             if dist < 95:
                 cv2.circle(self.image, (x, y), 5, (0, 0, 0), cv2.FILLED)
-            prev_x = x
-            prev_y = y
             angle += angle_step
 
 
