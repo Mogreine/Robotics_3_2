@@ -206,7 +206,6 @@ class Robot:
                 if k == ord('s'):
                     cv2.imwrite('map2.png', self.image)
 
-
         return img
 
     def start_simulation(self):
