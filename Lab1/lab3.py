@@ -57,6 +57,13 @@ class Robot:
                                                                  vrep.simx_opmode_oneshot_wait)
         self.check_error(error_code, "Couldn't find left robot!", True)
 
+        self.prev_position = vrep.simxGetObjectPosition(self.client_id, self.robot_handle, self.cuboid,
+                                                        vrep.simx_opmode_streaming)
+        self.prev_orientation = vrep.simxGetObjectOrientation(self.client_id, self.robot_handle, -1,
+                                                              vrep.simx_opmode_streaming)
+
+        self.image = cv2.imread('map.png')
+
         sec, msec = vrep.simxGetPingTime(self.client_id)
         print("Ping time: %f" % (sec + msec / 1000.0))
         print('Initialization is finished.')
@@ -169,20 +176,36 @@ class Robot:
                 # r = 5
                 # y0 = mine.y + math.cos(angle) * r
                 # x0 = mine.x + math.sin(angle) * r
-                dev_p = cylinder_coords - 256
+                scaling = 20
+                dev_p = 256 - cylinder_coords
                 screen_width = 2 * 5 * math.tan(math.radians(30))
                 coef = screen_width / 512
-                dev = coef * dev_p
-                robot_pos = \
-                    vrep.simxGetObjectPosition(self.client_id, self.robot_handle, self.cuboid, vrep.simx_opmode_buffer)[
-                        1]
-                robot_orientation = \
-                    vrep.simxGetObjectOrientation(self.client_id, self.robot_handle, -1,
-                                                  vrep.simx_opmode_buffer)[1][2]
-                dist = math.sqrt(dev ** 2 + 25)
-                pos = (robot_pos[0] + 5 * math.sin(robot_orientation), robot_pos[1] + 5 * math.cos(robot_orientation) + dev)
+                dev = coef * dev_p * scaling
+                robot_pos = vrep.simxGetObjectPosition(self.client_id, self.robot_handle, self.cuboid,
+                                                       vrep.simx_opmode_buffer)[1]
+                robot_pos = [p * scaling for p in robot_pos]
+                robot_pos[1] *= -1
+                # robot_pos[0], robot_pos[1] = robot_pos[1], robot_pos[0]
+                robot_pos[0] += 500
+                robot_pos[1] += 200
+                robot_orientation = vrep.simxGetObjectOrientation(self.client_id, self.robot_handle, -1,
+                                                       vrep.simx_opmode_buffer)[1][2] + math.radians(90)
+                angle = (robot_orientation + math.radians(dev_p / 8.53))
+                dist = 5 * scaling
+                pos = (robot_pos[0] + dist * math.sin(angle), robot_pos[1] + dist * math.cos(angle))
+                print(pos)
+                print(math.degrees(angle))
+                pos = (int(pos[0]), int(pos[1]))
                 if self.is_cylinder_unique(pos):
-                    self.cylinders_pos.append((pos[0], pos[1], 1))
+                    self.cylinders_pos.append((pos[0], pos[1], 3 * scaling))
+                    cv2.circle(self.image, pos, 5, (0, 0, 255), cv2.FILLED)
+
+                cv2.imshow('SLAM', self.image)
+                k = cv2.waitKey(1) & 0xFF
+                # saving the map if 's' is pressed
+                if k == ord('s'):
+                    cv2.imwrite('map2.png', self.image)
+
 
         return img
 
