@@ -190,7 +190,7 @@ class Robot:
         e, data2 = vrep.simxGetStringSignal(self.client_id, "distances", vrep.simx_opmode_streaming)
         self.check_on_error(e, "simxGetStringSignal lidar error")
 
-        map = Map(MAP_SIZE_PIXELS, MAP_SIZE_PIXELS, MAP_SIZE_METERS)
+        map = Map(MAP_SIZE_PIXELS, MAP_SIZE_PIXELS)
 
         prev_dist = 0
         err_arr_tmp = np.zeros(100)

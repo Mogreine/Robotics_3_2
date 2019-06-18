@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Map(object):
-    def __init__(self, width, height, meters):
+    def __init__(self, width, height):
         self.width = width
         self.height = height
         self.start_pos_x = width // 2
@@ -53,6 +53,7 @@ class Map(object):
             x = int(pos[0] + dist * math.cos(math.radians(angle)))
             y = int(pos[1] + dist * math.sin(math.radians(angle)))
             cv2.line(self.image, pos, (x, y), self.line_color, 1)
+            # if change scale_effect 95 should also be changed.
             if dist < 95:
                 cv2.circle(self.image, (x, y), 5, (0, 0, 0), cv2.FILLED)
             angle += angle_step

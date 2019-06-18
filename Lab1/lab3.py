@@ -17,6 +17,7 @@ class Robot:
     iSum = 0
     initial_speed = 0.6
     maintained_dist_right = 0.4
+    cylinders_pos = list()
 
     def __init__(self):
         vrep.simxFinish(-1)
@@ -49,6 +50,12 @@ class Robot:
         error_code, self.laser_middle = vrep.simxGetObjectHandle(self.client_id, 'Pr_sensor_middle',
                                                                  vrep.simx_opmode_oneshot_wait)
         self.check_error(error_code, "Couldn't find middle laser!", True)
+        error_code, self.cuboid = vrep.simxGetObjectHandle(self.client_id, 'Cuboid',
+                                                                 vrep.simx_opmode_oneshot_wait)
+        self.check_error(error_code, "Couldn't find cuboid!", True)
+        error_code, self.robot_handle = vrep.simxGetObjectHandle(self.client_id, 'Pioneer_p3dx',
+                                                                 vrep.simx_opmode_oneshot_wait)
+        self.check_error(error_code, "Couldn't find left robot!", True)
 
         sec, msec = vrep.simxGetPingTime(self.client_id)
         print("Ping time: %f" % (sec + msec / 1000.0))
@@ -118,6 +125,13 @@ class Robot:
         else:
             return -1
 
+    def is_cylinder_unique(self, pos):
+        for c_pos in self.cylinders_pos:
+            if (pos[0] - c_pos[0]) ** 2 + (pos[1] - c_pos[1]) ** 2 <= c_pos[2] ** 2:
+                return False
+
+        return True
+
     def process_image(self, img):
         img_resized = imutils.resize(img, width=300)
         ratio = img.shape[0] / img_resized.shape[0]
@@ -134,7 +148,7 @@ class Robot:
         upper_green = np.array([60, 255, 255])
 
         mask = cv2.inRange(hsv_im, lower_green, upper_green)
-        masked_im = cv2.bitwise_and(img_resized, img_resized, mask=mask)
+        # masked_im = cv2.bitwise_and(img_resized, img_resized, mask=mask)
         # cv2.imshow('mask', mask)
         # if cv2.waitKey(1) & 0xFF == ord('q'):
         #     return
@@ -151,10 +165,24 @@ class Robot:
                 cv2.drawContours(img, [contour], -1, (255, 0, 0), 2)
 
                 # calculating an approximate position
-                angle = math.radians((256 - cylinder_coords) // (512 / 60))
-                r = 5
-                y0 = mine.y + math.cos(angle) * r
-                x0 = mine.x + math.sin(angle) * r
+                # angle = math.radians((256 - cylinder_coords) // (512 / 60))
+                # r = 5
+                # y0 = mine.y + math.cos(angle) * r
+                # x0 = mine.x + math.sin(angle) * r
+                dev_p = cylinder_coords - 256
+                screen_width = 2 * 5 * math.tan(math.radians(30))
+                coef = screen_width / 512
+                dev = coef * dev_p
+                robot_pos = \
+                    vrep.simxGetObjectPosition(self.client_id, self.robot_handle, self.cuboid, vrep.simx_opmode_buffer)[
+                        1]
+                robot_orientation = \
+                    vrep.simxGetObjectOrientation(self.client_id, self.robot_handle, -1,
+                                                  vrep.simx_opmode_buffer)[1][2]
+                dist = math.sqrt(dev ** 2 + 25)
+                pos = (robot_pos[0] + 5 * math.sin(robot_orientation), robot_pos[1] + 5 * math.cos(robot_orientation) + dev)
+                if self.is_cylinder_unique(pos):
+                    self.cylinders_pos.append((pos[0], pos[1], 1))
 
         return img
 
@@ -186,11 +214,11 @@ class Robot:
             elif not left_detection and not right_detection and middle_detection:
                 dist = distance_middle
             elif not left_detection:
-                dist = 0.9
+                dist = 0.7
                 if middle_detection:
                     dist = min(dist, distance_middle, distance_right)
             elif left_detection and middle_detection:
-                    dist = min(distance_left, distance_middle)
+                dist = min(distance_left, distance_middle)
 
             if front_detection:
                 dist = min(distance_front / 2, dist)
@@ -214,10 +242,15 @@ class Robot:
                 img = cv2.flip(img, 0)
 
                 img = self.process_image(img)
+                print(f"Опознано цилиндров: {len(self.cylinders_pos)}")
 
                 cv2.imshow('vision sensor', img)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
                     break
+                if key == ord('s'):
+                    cv2.imwrite('camera.png', img)
+
             elif err == vrep.simx_return_novalue_flag:
                 print("no image yet")
                 pass
@@ -251,7 +284,8 @@ class Robot:
                                                                      vrep.simx_opmode_buffer)
         self.check_error(e, "Middle sensor data reading error")
 
-        return front_detection, left_detection, middle_detection, right_detection, np.linalg.norm(front), np.linalg.norm(left), np.linalg.norm(middle), np.linalg.norm(right)
+        return front_detection, left_detection, middle_detection, right_detection, np.linalg.norm(
+            front), np.linalg.norm(left), np.linalg.norm(middle), np.linalg.norm(right)
 
 
 if __name__ == '__main__':
